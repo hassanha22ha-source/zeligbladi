@@ -95,6 +95,12 @@ export function Navbar() {
 
                 {/* Icons */}
                 <div className="flex items-center space-x-6">
+                    <Link
+                        href="/try-zellige"
+                        className="hidden lg:flex items-center px-4 py-2 bg-gold-600 text-white rounded-sm text-[9px] font-black uppercase tracking-[0.2em] hover:bg-gold-700 transition-all duration-300 shadow-md hover:shadow-lg"
+                    >
+                        Simulateur 3D
+                    </Link>
                     <ThemeToggle />
                     {user ? (
                         <div className="flex items-center space-x-4">
@@ -163,6 +169,13 @@ export function Navbar() {
                                 {link.name}
                             </Link>
                         ))}
+                        <Link
+                            href="/try-zellige"
+                            className="text-lg font-serif text-gold-600 font-bold hover:text-gold-700 transition-all"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            Simulateur 3D
+                        </Link>
                         <div className="pt-6 border-t border-earth-100 flex flex-col space-y-4">
                             {user ? (
                                 <>
