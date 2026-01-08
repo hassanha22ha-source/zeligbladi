@@ -58,7 +58,7 @@ export default function ProductDetailPage() {
         try {
             const { data, error } = await supabase
                 .from('products')
-                .select('*, formats(name, categories(name))')
+                .select('*, formats(name, categories(name)), product_images(image_url)')
                 .eq('id', id)
                 .single();
 
@@ -74,11 +74,14 @@ export default function ProductDetailPage() {
     const handleAddToCart = () => {
         if (!product) return;
 
+        // Resolve valid image
+        const displayImage = (product as any).product_images?.[0]?.image_url || product.image_url;
+
         addToCart({
             id: product.id,
             name: product.name,
             price: Number(product.price),
-            image_url: product.image_url,
+            image_url: displayImage,
             quantity: quantity,
             format_name: product.formats?.name
         });
@@ -117,6 +120,9 @@ export default function ProductDetailPage() {
         );
     }
 
+    // Resolve valid image for render
+    const displayImage = (product as any).product_images?.[0]?.image_url || product.image_url;
+
     const fadeIn = {
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0 },
@@ -150,9 +156,9 @@ export default function ProductDetailPage() {
                         {/* Zellige Texture Overlay */}
                         <div className="absolute inset-0 zellige-pattern opacity-10 z-20 pointer-events-none" />
 
-                        {product.image_url ? (
+                        {displayImage ? (
                             <Image
-                                src={product.image_url}
+                                src={displayImage}
                                 alt={product.name}
                                 fill
                                 className="object-cover"
@@ -178,7 +184,7 @@ export default function ProductDetailPage() {
                     <div className="grid grid-cols-4 gap-4">
                         {[1, 2, 3, 4].map((i) => (
                             <div key={i} className="aspect-square bg-earth-50 rounded-sm border border-earth-100/50 cursor-pointer hover:border-gold-500 transition-all relative overflow-hidden">
-                                {product.image_url && <Image src={product.image_url} alt="" fill className="object-cover opacity-50 group-hover:opacity-100" />}
+                                {displayImage && <Image src={displayImage} alt="" fill className="object-cover opacity-50 group-hover:opacity-100" />}
                             </div>
                         ))}
                     </div>
@@ -246,8 +252,8 @@ export default function ProductDetailPage() {
                                 onClick={handleAddToCart}
                                 disabled={isAdded || product.stock_status === 'out_of_stock'}
                                 className={`flex-1 px-10 py-5 rounded-sm text-[11px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center justify-center space-x-3 group ${isAdded
-                                        ? "bg-green-600 text-white shadow-green-600/20"
-                                        : "bg-gold-600 text-white shadow-gold-600/20 hover:bg-earth-900 hover:shadow-earth-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    ? "bg-green-600 text-white shadow-green-600/20"
+                                    : "bg-gold-600 text-white shadow-gold-600/20 hover:bg-earth-900 hover:shadow-earth-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                     }`}
                             >
                                 {isAdded ? (

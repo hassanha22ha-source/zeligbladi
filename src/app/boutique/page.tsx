@@ -78,7 +78,7 @@ function BoutiqueContent() {
             // Fetch Products
             const { data: pData, error: pError } = await supabase
                 .from('products')
-                .select('*, formats(name, category_id)')
+                .select('*, formats(name, category_id), product_images(image_url)')
                 .order('created_at', { ascending: false });
 
             if (pError) throw pError;
@@ -273,99 +273,104 @@ function BoutiqueContent() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
-                            {filteredProducts.map((product, index) => (
-                                <motion.div
-                                    key={product.id}
-                                    initial="initial"
-                                    whileInView="animate"
-                                    viewport={{ once: true }}
-                                    variants={fadeIn}
-                                    transition={{ delay: (index % 4) * 0.1 }}
-                                    className="group"
-                                >
-                                    <div className="block space-y-8">
-                                        <div className="aspect-square bg-white shadow-2xl relative overflow-hidden rounded-sm glare-effect border border-earth-100 group-hover:border-gold-500 transition-colors duration-500">
-                                            {/* Zellige Texture Overlay */}
-                                            <div className="absolute inset-0 zellige-pattern opacity-10 group-hover:opacity-20 transition-opacity z-20 pointer-events-none" />
+                            {filteredProducts.map((product, index) => {
+                                // Resolve valid image
+                                const displayImage = (product as any).product_images?.[0]?.image_url || product.image_url;
 
-                                            <Link href={`/boutique/${product.id}`} className="absolute inset-0">
-                                                {product.image_url ? (
-                                                    <Image
-                                                        src={product.image_url}
-                                                        alt={product.name}
-                                                        fill
-                                                        className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                                                    />
-                                                ) : (
-                                                    <div className="absolute inset-0 flex items-center justify-center text-earth-100">
-                                                        <LayoutGrid size={80} strokeWidth={0.5} />
+                                return (
+                                    <motion.div
+                                        key={product.id}
+                                        initial="initial"
+                                        whileInView="animate"
+                                        viewport={{ once: true }}
+                                        variants={fadeIn}
+                                        transition={{ delay: (index % 4) * 0.1 }}
+                                        className="group"
+                                    >
+                                        <div className="block space-y-8">
+                                            <div className="aspect-square bg-white shadow-2xl relative overflow-hidden rounded-sm glare-effect border border-earth-100 group-hover:border-gold-500 transition-colors duration-500">
+                                                {/* Zellige Texture Overlay */}
+                                                <div className="absolute inset-0 zellige-pattern opacity-10 group-hover:opacity-20 transition-opacity z-20 pointer-events-none" />
+
+                                                <Link href={`/boutique/${product.id}`} className="absolute inset-0">
+                                                    {displayImage ? (
+                                                        <Image
+                                                            src={displayImage}
+                                                            alt={product.name}
+                                                            fill
+                                                            className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                                                        />
+                                                    ) : (
+                                                        <div className="absolute inset-0 flex items-center justify-center text-earth-100">
+                                                            <LayoutGrid size={80} strokeWidth={0.5} />
+                                                        </div>
+                                                    )}
+                                                </Link>
+
+                                                {/* Status Badge */}
+                                                <div className="absolute top-6 left-6 z-10 pointer-events-none">
+                                                    {product.stock_status === 'out_of_stock' ? (
+                                                        <span className="bg-red-500 text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest">Épuisé</span>
+                                                    ) : product.is_featured ? (
+                                                        <span className="bg-gold-600 text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest">En Avant</span>
+                                                    ) : null}
+                                                </div>
+
+                                                {/* Quick View / Add Hint */}
+                                                <div className="absolute inset-0 bg-earth-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30 pointer-events-none group-hover:pointer-events-auto">
+                                                    <div className="flex flex-col gap-3 scale-90 group-hover:scale-100 transition-transform duration-500">
+                                                        <Link
+                                                            href={`/boutique/${product.id}`}
+                                                            className="bg-white text-earth-900 px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-earth-50 transition-colors w-40"
+                                                        >
+                                                            <span className="text-[9px] font-black uppercase tracking-widest">Détails</span>
+                                                            <ArrowRight size={12} />
+                                                        </Link>
+
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                addToCart({
+                                                                    id: product.id,
+                                                                    name: product.name,
+                                                                    price: Number(product.price),
+                                                                    image_url: product.image_url,
+                                                                    quantity: 1,
+                                                                    format_name: product.formats?.name
+                                                                });
+                                                            }}
+                                                            className="bg-earth-900 text-white px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-gold-600 transition-colors w-40"
+                                                        >
+                                                            <span className="text-[9px] font-black uppercase tracking-widest">Ajouter</span>
+                                                            <ShoppingBag size={12} />
+                                                        </button>
                                                     </div>
-                                                )}
-                                            </Link>
-
-                                            {/* Status Badge */}
-                                            <div className="absolute top-6 left-6 z-10 pointer-events-none">
-                                                {product.stock_status === 'out_of_stock' ? (
-                                                    <span className="bg-red-500 text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest">Épuisé</span>
-                                                ) : product.is_featured ? (
-                                                    <span className="bg-gold-600 text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest">En Avant</span>
-                                                ) : null}
-                                            </div>
-
-                                            {/* Quick View / Add Hint */}
-                                            <div className="absolute inset-0 bg-earth-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30 pointer-events-none group-hover:pointer-events-auto">
-                                                <div className="flex flex-col gap-3 scale-90 group-hover:scale-100 transition-transform duration-500">
-                                                    <Link
-                                                        href={`/boutique/${product.id}`}
-                                                        className="bg-white text-earth-900 px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-earth-50 transition-colors w-40"
-                                                    >
-                                                        <span className="text-[9px] font-black uppercase tracking-widest">Détails</span>
-                                                        <ArrowRight size={12} />
-                                                    </Link>
-
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            addToCart({
-                                                                id: product.id,
-                                                                name: product.name,
-                                                                price: Number(product.price),
-                                                                image_url: product.image_url,
-                                                                quantity: 1,
-                                                                format_name: product.formats?.name
-                                                            });
-                                                        }}
-                                                        className="bg-earth-900 text-white px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-gold-600 transition-colors w-40"
-                                                    >
-                                                        <span className="text-[9px] font-black uppercase tracking-widest">Ajouter</span>
-                                                        <ShoppingBag size={12} />
-                                                    </button>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <Link href={`/boutique/${product.id}`} className="block space-y-4 px-2">
-                                            <div className="space-y-1">
-                                                <p className="text-gold-600 text-[10px] font-black uppercase tracking-[0.2em]">
-                                                    {product.formats?.name || "Format Artisanal"}
-                                                </p>
-                                                <h3 className="text-2xl font-serif text-earth-900 group-hover:text-gold-600 transition-colors duration-300">
-                                                    {product.name}
-                                                </h3>
-                                            </div>
-                                            <div className="flex items-center justify-between pt-2 border-t border-earth-100">
-                                                <span className="text-xl font-serif text-earth-900">
-                                                    {product.price} <span className="text-sm font-light text-earth-400">MAD/m²</span>
-                                                </span>
-                                                <button className="w-10 h-10 rounded-full bg-earth-50 text-earth-900 flex items-center justify-center hover:bg-earth-900 hover:text-white transition-all active:scale-90">
-                                                    <ArrowRight size={16} />
-                                                </button>
-                                            </div>
-                                        </Link>
-                                    </div>
-                                </motion.div>
-                            ))}
+                                            <Link href={`/boutique/${product.id}`} className="block space-y-4 px-2">
+                                                <div className="space-y-1">
+                                                    <p className="text-gold-600 text-[10px] font-black uppercase tracking-[0.2em]">
+                                                        {product.formats?.name || "Format Artisanal"}
+                                                    </p>
+                                                    <h3 className="text-2xl font-serif text-earth-900 group-hover:text-gold-600 transition-colors duration-300">
+                                                        {product.name}
+                                                    </h3>
+                                                </div>
+                                                <div className="flex items-center justify-between pt-2 border-t border-earth-100">
+                                                    <span className="text-xl font-serif text-earth-900">
+                                                        {product.price} <span className="text-sm font-light text-earth-400">MAD/m²</span>
+                                                    </span>
+                                                    <button className="w-10 h-10 rounded-full bg-earth-50 text-earth-900 flex items-center justify-center hover:bg-earth-900 hover:text-white transition-all active:scale-90">
+                                                        <ArrowRight size={16} />
+                                                    </button>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
                         </div>
                     </>
                 )}

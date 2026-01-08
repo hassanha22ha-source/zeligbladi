@@ -27,9 +27,10 @@ export default function Home() {
       }
 
       // Fetch Products (Limited to 8)
+      // Join product_images to get the main image
       const { data: productsData } = await supabase
         .from('products')
-        .select('*, formats(name, category_id)')
+        .select('*, formats(name, category_id), product_images(image_url)')
         .order('created_at', { ascending: false })
         .limit(8);
 
@@ -240,92 +241,97 @@ export default function Home() {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
-          {products.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-              className="group"
-            >
-              <div className="block space-y-6">
-                <div className="aspect-square bg-white shadow-lg relative overflow-hidden rounded-sm glare-effect border border-earth-100 group-hover:border-gold-500 transition-colors duration-500">
-                  <Link href={`/boutique/${product.id}`} className="absolute inset-0">
-                    <div className="absolute inset-0 zellige-pattern opacity-10 group-hover:opacity-20 transition-opacity z-20 pointer-events-none" />
+          {products.map((product, index) => {
+            // Logic to find first valid image
+            const displayImage = product.product_images?.[0]?.image_url || product.image_url;
 
-                    {product.image_url ? (
-                      <Image
-                        src={product.image_url}
-                        alt={product.name}
-                        fill
-                        className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-earth-100">
-                        <LayoutGrid size={60} strokeWidth={0.5} />
+            return (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1, duration: 0.6 }}
+                className="group"
+              >
+                <div className="block space-y-6">
+                  <div className="aspect-square bg-white shadow-lg relative overflow-hidden rounded-sm glare-effect border border-earth-100 group-hover:border-gold-500 transition-colors duration-500">
+                    <Link href={`/boutique/${product.id}`} className="absolute inset-0">
+                      <div className="absolute inset-0 zellige-pattern opacity-10 group-hover:opacity-20 transition-opacity z-20 pointer-events-none" />
+
+                      {displayImage ? (
+                        <Image
+                          src={displayImage}
+                          alt={product.name}
+                          fill
+                          className="object-cover transition-transform duration-1000 group-hover:scale-110"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-earth-100">
+                          <LayoutGrid size={60} strokeWidth={0.5} />
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* Status Badge */}
+                    <div className="absolute top-4 left-4 z-10 pointer-events-none">
+                      {product.stock_status === 'out_of_stock' ? (
+                        <span className="bg-red-500 text-white px-2 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">Épuisé</span>
+                      ) : product.is_featured ? (
+                        <span className="bg-gold-600 text-white px-2 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">En Avant</span>
+                      ) : null}
+                    </div>
+
+                    {/* Hover Overlay with Actions */}
+                    <div className="absolute inset-0 bg-earth-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30 pointer-events-none group-hover:pointer-events-auto">
+                      <div className="flex flex-col gap-3 scale-90 group-hover:scale-100 transition-transform duration-500">
+                        <Link
+                          href={`/boutique/${product.id}`}
+                          className="bg-white text-earth-900 px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-earth-50 transition-colors w-40"
+                        >
+                          <span className="text-[9px] font-black uppercase tracking-widest">Détails</span>
+                          <ArrowRight size={12} />
+                        </Link>
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            addToCart({
+                              id: product.id,
+                              name: product.name,
+                              price: Number(product.price),
+                              image_url: displayImage,
+                              quantity: 1,
+                              format_name: product.formats?.name
+                            });
+                          }}
+                          className="bg-earth-900 text-white px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-gold-600 transition-colors w-40"
+                        >
+                          <span className="text-[9px] font-black uppercase tracking-widest">Ajouter</span>
+                          <ShoppingBag size={12} />
+                        </button>
                       </div>
-                    )}
-                  </Link>
-
-                  {/* Status Badge */}
-                  <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                    {product.stock_status === 'out_of_stock' ? (
-                      <span className="bg-red-500 text-white px-2 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">Épuisé</span>
-                    ) : product.is_featured ? (
-                      <span className="bg-gold-600 text-white px-2 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">En Avant</span>
-                    ) : null}
-                  </div>
-
-                  {/* Hover Overlay with Actions */}
-                  <div className="absolute inset-0 bg-earth-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30 pointer-events-none group-hover:pointer-events-auto">
-                    <div className="flex flex-col gap-3 scale-90 group-hover:scale-100 transition-transform duration-500">
-                      <Link
-                        href={`/boutique/${product.id}`}
-                        className="bg-white text-earth-900 px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-earth-50 transition-colors w-40"
-                      >
-                        <span className="text-[9px] font-black uppercase tracking-widest">Détails</span>
-                        <ArrowRight size={12} />
-                      </Link>
-
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          addToCart({
-                            id: product.id,
-                            name: product.name,
-                            price: Number(product.price),
-                            image_url: product.image_url,
-                            quantity: 1,
-                            format_name: product.formats?.name
-                          });
-                        }}
-                        className="bg-earth-900 text-white px-6 py-3 rounded-sm shadow-xl flex items-center justify-center space-x-2 hover:bg-gold-600 transition-colors w-40"
-                      >
-                        <span className="text-[9px] font-black uppercase tracking-widest">Ajouter</span>
-                        <ShoppingBag size={12} />
-                      </button>
                     </div>
                   </div>
-                </div>
 
-                <Link href={`/boutique/${product.id}`} className="block space-y-2">
-                  <p className="text-gold-600 text-[9px] font-black uppercase tracking-[0.2em]">
-                    {product.formats?.name || "Format Artisanal"}
-                  </p>
-                  <h3 className="text-xl font-serif text-earth-900 group-hover:text-gold-600 transition-colors duration-300 line-clamp-1">
-                    {product.name}
-                  </h3>
-                  <div className="flex items-center justify-between pt-2 border-t border-earth-100/50">
-                    <span className="text-lg font-serif text-earth-900">
-                      {product.price} <span className="text-xs font-light text-earth-400">MAD/m²</span>
-                    </span>
-                  </div>
-                </Link>
-              </div>
-            </motion.div>
-          ))}
+                  <Link href={`/boutique/${product.id}`} className="block space-y-2">
+                    <p className="text-gold-600 text-[9px] font-black uppercase tracking-[0.2em]">
+                      {product.formats?.name || "Format Artisanal"}
+                    </p>
+                    <h3 className="text-xl font-serif text-earth-900 group-hover:text-gold-600 transition-colors duration-300 line-clamp-1">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center justify-between pt-2 border-t border-earth-100/50">
+                      <span className="text-lg font-serif text-earth-900">
+                        {product.price} <span className="text-xs font-light text-earth-400">MAD/m²</span>
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 
