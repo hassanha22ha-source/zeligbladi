@@ -8,6 +8,7 @@ import { PreviewGenerator } from "@/components/TryZellige/PreviewGenerator";
 
 export default function TryZelligePage() {
     const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+    const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
     const [selectedZellige, setSelectedZellige] = useState<any | null>(null);
 
     return (
@@ -28,7 +29,7 @@ export default function TryZelligePage() {
                         transition={{ delay: 0.1 }}
                         className="text-earth-500 text-lg font-light leading-relaxed max-w-2xl mx-auto"
                     >
-                        Téléchargez une photo de votre pièce et visualisez instantanément nos créations artisanales dans votre espace.
+                        Téléchargez une photo de votre pièce et visualisez instantanément nos créations artisanales dans votre espace grâce à l'IA.
                     </motion.p>
                 </div>
             </section>
@@ -43,12 +44,16 @@ export default function TryZelligePage() {
                                 <span className="bg-earth-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px]">1</span>
                                 Votre Espace
                             </h2>
-                            <ImageUpload onImageUpload={setUploadedImage} />
+                            <ImageUpload
+                                onImageUpload={setUploadedImage}
+                                onUrlReady={setOriginalImageUrl}
+                            />
 
                             {/* Use Preview Generator simply to show the result below the upload after generation */}
                             <div className="mt-8">
                                 <PreviewGenerator
                                     uploadedImage={uploadedImage}
+                                    originalImageUrl={originalImageUrl}
                                     selectedZellige={selectedZellige}
                                 />
                             </div>

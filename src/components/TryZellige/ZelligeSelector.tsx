@@ -18,8 +18,8 @@ export function ZelligeSelector({ onSelect, selectedId }: ZelligeSelectorProps) 
         const fetchProducts = async () => {
             const { data } = await supabase
                 .from('products')
-                .select('id, name, image_url, price')
-                .limit(20);
+                .select('id, name, description, price, product_images(image_url)')
+                .limit(40);
 
             if (data) setProducts(data);
             setIsLoading(false);
@@ -55,7 +55,7 @@ export function ZelligeSelector({ onSelect, selectedId }: ZelligeSelectorProps) 
                         `}
                     >
                         <Image
-                            src={product.image_url}
+                            src={product.product_images?.[0]?.image_url || "/placeholder-zellige.jpg"}
                             alt={product.name}
                             fill
                             className="object-cover transition-transform duration-500 group-hover:scale-110"

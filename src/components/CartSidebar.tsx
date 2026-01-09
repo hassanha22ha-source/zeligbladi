@@ -163,10 +163,14 @@ export function CartSidebar() {
                                         <span>{totalPrice} MAD</span>
                                     </div>
                                 </div>
-                                <button className="w-full bg-earth-900 text-white py-4 rounded-sm flex items-center justify-center space-x-2 hovered-button group overflow-hidden relative">
+                                <Link
+                                    href="/commander"
+                                    onClick={() => setIsCartOpen(false)}
+                                    className="w-full bg-earth-900 text-white py-4 rounded-sm flex items-center justify-center space-x-2 hovered-button group overflow-hidden relative"
+                                >
                                     <span className="relative z-10 text-xs font-black uppercase tracking-widest">Commander</span>
                                     <ArrowRight className="relative z-10 transition-transform group-hover:translate-x-1" size={16} />
-                                </button>
+                                </Link>
                                 <p className="text-center text-[10px] text-earth-400 font-light">
                                     Taxes et frais de livraison calculés à l'étape suivante
                                 </p>
