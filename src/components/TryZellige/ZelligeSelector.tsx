@@ -18,10 +18,17 @@ export function ZelligeSelector({ onSelect, selectedId }: ZelligeSelectorProps) 
         const fetchProducts = async () => {
             const { data } = await supabase
                 .from('products')
-                .select('id, name, description, price, image_url, product_images(image_url)')
-                .limit(40);
+                .select('*, product_images(image_url)')
+                .order('created_at', { ascending: false })
+                .limit(100);
 
-            if (data) setProducts(data);
+            if (data) {
+                // Filter out products that have absolutely no image
+                const validProducts = data.filter(p =>
+                    (p.product_images && p.product_images.length > 0) || p.image_url
+                );
+                setProducts(validProducts);
+            }
             setIsLoading(false);
         };
 
@@ -47,10 +54,10 @@ export function ZelligeSelector({ onSelect, selectedId }: ZelligeSelectorProps) 
                         key={product.id}
                         onClick={() => onSelect(product)}
                         className={`
-                            relative aspect-square group rounded-sm overflow-hidden border-2 transition-all duration-300
+                            relative aspect-square group rounded-sm overflow-hidden border-2 transition-all duration-300 bg-earth-50
                             ${selectedId === product.id
-                                ? "border-gold-600 ring-2 ring-gold-600/20 scale-95"
-                                : "border-transparent hover:border-gold-300"
+                                ? "border-gold-600 ring-2 ring-gold-600/20 scale-95 shadow-lg"
+                                : "border-earth-100 hover:border-gold-300"
                             }
                         `}
                     >
@@ -60,14 +67,25 @@ export function ZelligeSelector({ onSelect, selectedId }: ZelligeSelectorProps) 
                             fill
                             unoptimized={true}
                             className="object-cover transition-transform duration-500 group-hover:scale-110"
+                            onError={(e: any) => {
+                                // If specifically the product image fails, fallback to logo
+                                if (e.target.src !== '/logo.png') {
+                                    e.target.src = '/logo.png';
+                                    e.target.style.objectFit = 'contain';
+                                    e.target.style.padding = '20%';
+                                }
+                            }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                            <span className="text-white text-[10px] font-black uppercase tracking-widest truncate">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                            <span className="text-white text-[10px] font-black uppercase tracking-widest line-clamp-2">
                                 {product.name}
+                            </span>
+                            <span className="text-gold-300 text-[8px] font-bold mt-1">
+                                {product.price} MAD/m²
                             </span>
                         </div>
                         {selectedId === product.id && (
-                            <div className="absolute top-2 right-2 bg-gold-600 text-white p-1 rounded-full shadow-lg">
+                            <div className="absolute top-2 right-2 bg-gold-600 text-white p-1 rounded-full shadow-lg z-10">
                                 <Check size={12} strokeWidth={3} />
                             </div>
                         )}
