@@ -192,7 +192,7 @@ export default function SetupProductsPage() {
     const [status, setStatus] = useState("Ready to start.");
     const [logs, setLogs] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [defaultPrice, setDefaultPrice] = useState(45); // Default start price
+    const [defaultPrice, setDefaultPrice] = useState(289); // Default start price
 
     const productsWithImages = PRODUCTS_TO_INSERT.map(name => ({
         name,

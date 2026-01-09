@@ -67,9 +67,10 @@ export default function FormatsPage() {
                                         <div className="absolute inset-0 zellige-pattern opacity-50 group-hover:scale-110 transition-transform duration-1000" />
                                         {format.image_url ? (
                                             <Image
-                                                src={format.image_url}
+                                                src={format.image_url.replace('http://', 'https://')}
                                                 alt={format.name}
                                                 fill
+                                                unoptimized={true}
                                                 className="object-cover relative z-10 transition-transform duration-700 group-hover:scale-105"
                                             />
                                         ) : (

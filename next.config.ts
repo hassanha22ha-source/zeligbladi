@@ -11,13 +11,13 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'www.zellige-maroc.com',
+        hostname: 'www.terredezellige.com',
         port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'www.terredezellige.com',
+        hostname: 'terredezellige.com',
         port: '',
         pathname: '/**',
       },
@@ -30,6 +30,18 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'zelligebladi.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'www.zellige-maroc.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.zellige-maroc.com',
         port: '',
         pathname: '/**',
       },

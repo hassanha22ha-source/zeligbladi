@@ -158,11 +158,12 @@ export default function ProductDetailPage() {
 
                         {displayImage ? (
                             <Image
-                                src={displayImage}
+                                src={displayImage.replace('http://', 'https://')}
                                 alt={product.name}
                                 fill
                                 className="object-cover"
                                 priority
+                                unoptimized={true}
                             />
                         ) : (
                             <div className="absolute inset-0 flex items-center justify-center text-earth-100">
@@ -184,7 +185,7 @@ export default function ProductDetailPage() {
                     <div className="grid grid-cols-4 gap-4">
                         {[1, 2, 3, 4].map((i) => (
                             <div key={i} className="aspect-square bg-earth-50 rounded-sm border border-earth-100/50 cursor-pointer hover:border-gold-500 transition-all relative overflow-hidden">
-                                {displayImage && <Image src={displayImage} alt="" fill className="object-cover opacity-50 group-hover:opacity-100" />}
+                                {displayImage && <Image src={displayImage.replace('http://', 'https://')} alt="" fill unoptimized={true} className="object-cover opacity-50 group-hover:opacity-100" />}
                             </div>
                         ))}
                     </div>

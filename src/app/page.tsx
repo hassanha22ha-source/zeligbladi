@@ -261,9 +261,10 @@ export default function Home() {
 
                       {displayImage ? (
                         <Image
-                          src={displayImage}
+                          src={displayImage.replace('http://', 'https://')}
                           alt={product.name}
                           fill
+                          unoptimized={true}
                           className="object-cover transition-transform duration-1000 group-hover:scale-110"
                         />
                       ) : (
