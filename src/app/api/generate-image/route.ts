@@ -1,125 +1,100 @@
 import { NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
+import { replicate } from '@/lib/replicate';
 import { supabase } from '@/lib/supabase';
 import sharp from 'sharp';
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { originalImageUrl, zellige, targetArea, maskImageUrl } = body;
+        const { originalImageUrl, zellige, targetArea } = body;
 
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            return NextResponse.json({ error: 'OpenAI API key missing on server' }, { status: 500 });
+        const openaiKey = process.env.OPENAI_API_KEY;
+        const replicateToken = process.env.REPLICATE_API_TOKEN;
+        
+        if (!openaiKey || !replicateToken) {
+            return NextResponse.json({ error: 'API keys missing on server' }, { status: 500 });
         }
 
         if (!originalImageUrl || !zellige) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        // 1. Fetch original image
+        // 1. Fetch original image metadata
         const imageRes = await fetch(originalImageUrl);
         const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
         const metadata = await sharp(imageBuffer).metadata();
         const originalWidth = metadata.width || 1024;
         const originalHeight = metadata.height || 1024;
 
-        // 2. Build a hyper-realistic prompt based on User's Tips
-        const zelligeName = zellige.name.toLowerCase();
-        const zelligeDesc = (zellige.description || '').toLowerCase();
-        const searchPool = `${zelligeName} ${zelligeDesc}`;
+        // 2. Generate optimized FLUX prompt using OpenAI LMM
+        // This follows the user's specific system prompt for prompt engineering.
+        const promptEngineeringResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are an expert AI prompt engineer specializing in photorealistic interior design visualization and Stable Diffusion / FLUX image generation.
 
-        const colorMap: Record<string, string> = {
-            'blue': 'Authentic Fez Blue',
-            'bleu': 'Authentic Fez Blue',
-            'green': 'Emerald Green',
-            'vert': 'Emerald Green',
-            'red': 'Traditional Terra Cotta',
-            'rouge': 'Traditional Terra Cotta',
-            'white': 'Glossy Bone White',
-            'blanc': 'Glossy Bone White',
-            'black': 'Sleek Charcoal',
-            'noir': 'Sleek Charcoal',
-            'turquoise': 'Vibrant Turquoise',
-            'turq': 'Vibrant Turquoise',
-            'gold': 'Golden Honey',
-            'miel': 'Golden Honey'
-        };
+You will receive:
+1. A photo/description of a room or wall.
+2. A zelij tile product name, color palette, and pattern description.
 
-        let colorFinal = "Traditional Moroccan";
-        for (const [key, val] of Object.entries(colorMap)) {
-            if (searchPool.includes(key)) {
-                colorFinal = val;
-                break;
-            }
-        }
+Your task: Generate a single, highly optimized FLUX image generation prompt that shows the EXACT same room but with the zelij tiles applied to the walls.
 
-        // Detailed Prompt using User's recommended keywords
-        const prompt = `صورة واقعية جداً (Photorealistic) وعالية الدقة (High-Resolution) لغرفة داخلية مع بلاطات زليجية مغربية أصلية بلون ${colorFinal} مطبقة على الـ ${targetArea === 'wall' ? 'Wall' : 'Floor'}.
-    Details: ${zellige.name}, authentic handmade ceramic texture, glossy reflective finish, subtle color variations.
-    Keywords: Ultra-detailed, cinematic lighting (إضاءة سينمائية), 8k resolution, photorealistic architectural photography.
-    MANDATORY PRESERVATION: 
-    - KEEP original lighting, furniture, and room layout 100% UNCHANGED.
-    - Matches the original photo's perspective perfectly.
-    - NO TEXT, NO LOGOS, NO GRAPHICS (بلا نصوص أو علامات).`;
+RULES:
+- Preserve everything: room layout, furniture, objects, lighting direction, shadows, perspective angle, time of day.
+- Only change the wall surface texture/pattern to the zelij tiles.
+- Be extremely specific about the zelij pattern geometry, colors, and material finish (glazed ceramic, matte, glossy).
+- Include photographic quality keywords.
+- Maximum 80 words.
+- Output ONLY the prompt — no explanation, no preamble, no quotes.
 
-        // 3. Process Original Image
-        const aiInputBuffer = await sharp(imageBuffer)
-            .resize(1024, 1024, { fit: 'fill' })
-            .ensureAlpha()
-            .png()
-            .toBuffer();
-
-        // 4. Generate Adaptive Mask
-        let finalMaskBuffer: Buffer;
-        if (maskImageUrl) {
-            const mRes = await fetch(maskImageUrl);
-            finalMaskBuffer = await sharp(Buffer.from(await mRes.arrayBuffer()))
-                .resize(1024, 1024, { fit: 'fill' })
-                .ensureAlpha()
-                .png()
-                .toBuffer();
-        } else {
-            const maskBuf = Buffer.alloc(1024 * 1024 * 4, 255);
-
-            if (targetArea === 'wall') {
-                const sY = 100, eY = 900, sX = 100, eX = 924;
-                for (let y = sY; y < eY; y++) {
-                    for (let x = sX; x < eX; x++) {
-                        const idx = (y * 1024 + x) * 4;
-                        maskBuf[idx + 3] = 0;
-                    }
+PROMPT STRUCTURE TO FOLLOW:
+[room type + perspective] + [zelij tile description: pattern, colors, finish] + [preserved elements: furniture, lighting] + [photography style keywords]`
+                },
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: `Product: ${zellige.name}
+Colors: ${zellige.color_palette || zellige.description}
+Pattern: ${zellige.pattern_description || zellige.name}
+Applying to: ${targetArea === 'wall' ? 'walls' : 'floors'}` }
+                    ]
                 }
-            } else {
-                const startY = 384;
-                for (let y = startY; y < 1024; y++) {
-                    for (let x = 0; x < 1024; x++) {
-                        const idx = (y * 1024 + x) * 4;
-                        maskBuf[idx + 3] = 0;
-                    }
-                }
-            }
-
-            finalMaskBuffer = await sharp(maskBuf, {
-                raw: { width: 1024, height: 1024, channels: 4 }
-            })
-                .png()
-                .toBuffer();
-        }
-
-        // 5. OpenAI API Call
-        const response = await openai.images.edit({
-            image: new File([new Uint8Array(aiInputBuffer)], 'image.png', { type: 'image/png' }),
-            mask: new File([new Uint8Array(finalMaskBuffer)], 'mask.png', { type: 'image/png' }),
-            prompt: prompt,
-            n: 1,
-            size: "1024x1024",
+            ],
+            temperature: 0.7,
+            max_tokens: 150
         });
 
-        const generatedImageUrl = response.data?.[0]?.url;
-        if (!generatedImageUrl) throw new Error('No image returned');
+        const fluxPrompt = promptEngineeringResponse.choices[0]?.message?.content?.trim() || `Moroccan interior with ${zellige.name} zellige, high quality`;
+        console.log("Generated FLUX Prompt:", fluxPrompt);
 
-        // 6. Restore Dimensions
+        // 3. Call Replicate with FLUX-dev Image-to-Image
+        // Following User's Tips: prompt_strength: 0.7, guidance_scale: 3.5, and negative_prompt
+        const output: any = await replicate.run(
+            "black-forest-labs/flux-dev",
+            {
+                input: {
+                    image: originalImageUrl,
+                    prompt: fluxPrompt,
+                    guidance: 3.5, // Standard FLUX guidance
+                    prompt_strength: 0.7, // Denoising strength for img2img
+                    negative_prompt: "blurry, distorted tiles, wrong colors, different room, changed furniture, low quality",
+                    num_outputs: 1,
+                    num_inference_steps: 28,
+                    output_format: "png",
+                }
+            }
+        );
+
+        const generatedImageUrl = Array.isArray(output) ? output[0] : output;
+        
+        if (!generatedImageUrl) {
+            throw new Error('Replicate failed to return an image');
+        }
+
+        // 4. Restore Dimensions
         const genRes = await fetch(generatedImageUrl);
         const genBuffer = Buffer.from(await genRes.arrayBuffer());
         const restoredBuffer = await sharp(genBuffer)
@@ -127,7 +102,7 @@ export async function POST(req: Request) {
             .png()
             .toBuffer();
 
-        // 7. Upload to Supabase
+        // 5. Upload to Supabase for persistence
         const fileName = `gen_${Date.now()}.png`;
         const { error: uploadError } = await supabase.storage
             .from('room-generated')
